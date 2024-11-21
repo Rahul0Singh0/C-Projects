@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#define ll long long unsigned int
 #define SHUT_RDWR 0x02 // unistd.h headerfile
 #define MAX_BYTES 4096
 #define MAX_CLIENT 10
@@ -57,11 +58,18 @@ int connectRemoteServer(char *host_addr, int port_num) {
         fprintf(stderr, "No such host exist\n");
         return -1;
     }
+
     struct sockaddr_in server_addr;
-    bzero((char *)&server_addr, sizeof(server_addr));
+
+    // bzero((char *)&server_addr, sizeof(server_addr));
+    size_t sz = sizeof(server_addr);
+    memset(&server_addr, 0, sz);
+
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port_num);
-    bcopy((char *)&host->h_addr, (char*)&server_addr.sin_addr.s_addr, host->h_length);
+
+    // bcopy((char *)&host->h_addr, (char*)&server_addr.sin_addr.s_addr, host->h_length);
+    memcpy(&server_addr.sin_addr.s_addr, &host->h_addr, host->h_length);
 
     // Connect to Remote server ----------------------------------------------------
 	if( connect(remoteSocket, (struct sockaddr*)&server_addr, (socklen_t)sizeof(server_addr)) < 0 ) {
@@ -109,14 +117,16 @@ int handle_request(int clientSocketId, ParsedRequest *request, char *tempReq) {
         return -1;
     }
     int bytes_send = send(remoteSocketId, buff, strlen(buff), 0);
-    bzero(buff, MAX_BYTES);
+    // bzero(buff, MAX_BYTES);
+    memset(buff, 0, MAX_BYTES);
     bytes_send = recv(remoteSocketId, buff, MAX_BYTES-1, 0);
     char *temp_buffer = (char*)malloc(sizeof(char)*MAX_BYTES);
     int temp_buffer_size = MAX_BYTES;
     int temp_buffer_index = 0;
     while(bytes_send > 0) {
         bytes_send = send(clientSocketId, buff, bytes_send, 0);
-        for(int i = 0; i < bytes_send/sizeof(char); i++) {
+        ll sz = bytes_send/sizeof(char);
+        for(int i = 0; (ll)i < sz; i++) {
             temp_buffer[temp_buffer_index] = buff[i];
             temp_buffer_index++;
         }
@@ -126,7 +136,8 @@ int handle_request(int clientSocketId, ParsedRequest *request, char *tempReq) {
             perror("Error in sending data to the clent\n");
             break;
         }
-        bzero(buff, MAX_BYTES);
+        // bzero(buff, MAX_BYTES);
+        memset(buff, 0, MAX_BYTES);
         bytes_send = recv(remoteSocketId, buff, MAX_BYTES-1, 0);
     }
     temp_buffer[temp_buffer_index] = '\0';
@@ -198,13 +209,14 @@ int sendErrorMessage(int socket, int status_code) {
 void *thread_fn(void *socketNew) {
     sem_wait(&semaphore);
     int p;
-    sem_getvalue(&semaphore, p); // value of semaphore store in p
+    sem_getvalue(&semaphore, &p); // value of semaphore store in p
     printf("Semaphore value is %d\n", p);
     int *t = (int*)socketNew;
-    int socket = *t; // dereference
-    int bytes_send_client, len;
+    int socket = *t; // Socket is socket descriptor of the connected Client
+    int bytes_send_client, len;  // Bytes Transferred
     char *buffer = (char*)calloc(MAX_BYTES, sizeof(char));
-    bzero(buffer, MAX_BYTES);
+    // bzero(buffer, MAX_BYTES);
+    memset(buffer, 0, MAX_BYTES);
     bytes_send_client = recv(socket, buffer, MAX_BYTES, 0); // start to recieve
     while(bytes_send_client > 0) {
         len = strlen(buffer);
@@ -215,7 +227,7 @@ void *thread_fn(void *socketNew) {
         }
     }
     char *tempReq = (char *)malloc(strlen(buffer)*sizeof(char));
-    for(int i = 0; i < strlen(buffer); i++) {
+    for(int i = 0; (size_t)i < strlen(buffer); i++) {
         tempReq[i] = buffer[i];
     }
     struct cache_element *temp = find(tempReq);
@@ -224,7 +236,8 @@ void *thread_fn(void *socketNew) {
         int pos = 0;
         char response[MAX_BYTES];
         while(pos < size) {
-            bezero(response, MAX_BYTES);
+            // bezero(response, MAX_BYTES);
+            memset(response, 0, MAX_BYTES);
             for(int i = 0; i < MAX_BYTES; i++) {
                 response[i] = temp->data[i];
                 pos++;
@@ -240,7 +253,8 @@ void *thread_fn(void *socketNew) {
             // parse request failed
             printf("parsing failed\n");
         } else {
-            bzero(buffer, MAX_BYTES);
+            // bzero(buffer, MAX_BYTES);
+            memset(buffer, 0, MAX_BYTES);
             if(!strcmp(request->method, "GET")) {
                 if(request->host && request->path && checkHTTPversion(request->version)==1) {
                     bytes_send_client = handle_request(socket, request, tempReq);
@@ -263,8 +277,8 @@ void *thread_fn(void *socketNew) {
     shutdown(socket, SHUT_RDWR);
     close(socket);
     free(buffer);
-    sem_port(&semaphore);
-    sem_getvalue(&semaphore, p);
+    sem_post(&semaphore);
+    sem_getvalue(&semaphore, &p);
     printf("Semaphore post value is %d\n", p);
     free(tempReq);
     return NULL;
@@ -275,7 +289,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in server_addr, client_addr;
     sem_init(&semaphore, 0, MAX_CLIENT); // initialize the semaphore with min 0 and max = MAX_CLIENT
     pthread_mutex_init(&lock, NULL);
-    if(argv == 2) {
+    if(argc == 2) {
         port_number = atoi(argv[1]);
     } else {
         printf("Too few arguments\n");
@@ -294,7 +308,9 @@ int main(int argc, char *argv[]) {
         perror("setSockOpt failed\n");
     } 
 
-    bzero((char*)&server_addr, sizeof(server_addr)); // clean garbage value
+    // bzero((char*)&server_addr, sizeof(server_addr)); // clean garbage value
+    size_t sz = sizeof(server_addr);
+    memset(&server_addr, 0, sz);
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port_number);
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -313,7 +329,9 @@ int main(int argc, char *argv[]) {
 
     // client accept and create socket for that client in this loop
     while(1) {
-        bzero((char *)&client_addr, sizeof(client_addr)); // clear garbage values
+        // bzero((char *)&client_addr, sizeof(client_addr)); // clear garbage values
+        size_t sz = sizeof(client_addr);
+        memset(&client_addr, 0, sz);
         client_len = sizeof(client_addr);
         client_socketId = accept(proxy_socket_id, (struct sockaddr*)&client_addr, (socklen_t*)&client_len);
         if(client_socketId < 0) {
@@ -327,9 +345,9 @@ int main(int argc, char *argv[]) {
         struct sockaddr_in *client_pt = (struct sockaddr_in*)&client_addr;
         struct in_addr ip_addr = client_pt->sin_addr;
         char str[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &ip_addr, str, INET_ADDRSTRLEN);
+		// inet_ntoa(AF_INET, &ip_addr, str, INET_ADDRSTRLEN );
+        inet_ntoa(ip_addr);
         printf("Client is connected with port number %d and ip address is %s\n", ntohs(client_addr.sin_port), str);
-
         pthread_create(&tid[i], NULL, thread_fn, (void *)&Connected_socketId[i]);
         i++;
     }
@@ -345,10 +363,10 @@ cache_element *find(char *url) {
         site = head;
         while(site != NULL) {
             if(!strcmp(site->url, url)) {
-                printf("LRU time track before: %ld", site->lru_time_track);
+                printf("LRU time track before: %lld", site->lru_time_track);
                 printf("\nurl found\n");
                 site->lru_time_track = time(NULL);
-                printf("LRU time track after: %ld", site->lru_time_track);
+                printf("LRU time track after: %lld", site->lru_time_track);
                 break;
             }
             site = site->next;
@@ -405,7 +423,7 @@ int add_cache_element(char *data, int size, char *url) {
         strcpy(element->data, data);
         element->url = (char*)malloc(1+(strlen(url)*sizeof(char)));
         strcpy(element->url, url);
-        element->lru_time_track - time(NULL);
+        element->lru_time_track = time(NULL);
         element->next = head;
         element->len = size;
         head = element;

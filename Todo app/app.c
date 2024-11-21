@@ -4,6 +4,8 @@
 #include <ctype.h> // toupper
 #include <time.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 struct Todo {
     char name[50];
@@ -14,6 +16,39 @@ typedef struct Todo Todo;
 
 Todo todoList[50];
 int todos = 0; // no. of todo
+FILE *filePointer;
+
+void saveToFile() {
+    filePointer = fopen("./file.bin", "w"); // write operation
+    if(!filePointer) {
+        printf("\nCan not save your todo in file");
+    } else {
+        for(size_t i = 0; i < todos; i++) {
+            fwrite(&todoList[i], sizeof(Todo), 1, filePointer);
+        }
+        fclose(filePointer);
+    }
+}
+
+void getFileSize() {
+    fseek(filePointer, 0L, SEEK_END);
+    unsigned int long size = ftell(filePointer);
+    fseek(filePointer, 0L, SEEK_SET);
+    todos = size / sizeof(struct Todo);
+}
+
+void readFromFile() {
+    filePointer = fopen("./file.bin", "r"); // read operation
+    if(!filePointer) {
+        printf("\nWe are not able to fetchs any todo from file");
+    } else {
+        getFileSize();
+        for(size_t i = 0; i < todos; i++) {
+            fread(&todoList[i], sizeof(Todo), 1, filePointer);
+        }
+        fclose(filePointer);
+    }
+}
 
 void addTodo() {
     // Input todo title
@@ -118,8 +153,10 @@ void showOption() {
             showOption();
             break;
     }
+    saveToFile();
     getchar();
     showOption();
+
 }
 
 void interface() {
@@ -134,7 +171,13 @@ void interface() {
 
 void appStart() {
     interface();
-    showOption();
+    if (access("./file.bin", F_OK) != -1) {
+        readFromFile();
+        showOption();
+    } else
+    {
+        showOption();
+    }
 }
 
 int main() {
