@@ -1,8 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h> // toupper
+#include <time.h>
+#include <stdbool.h>
 
-void addTodo();
+struct Todo {
+    char name[50];
+    char time[50]; // creation time
+    _Bool isDone;
+};
+typedef struct Todo Todo;
+
+Todo todoList[50];
+int todos = 0; // no. of todo
+
+void addTodo() {
+    // Input todo title
+    char inputName[50];
+    pritnf("\nEnter todo : ");
+    fflush(stdin);
+    scanf("%[^\n]s",inputName);
+    strcpy(todoList->name[todos], inputName);
+
+    // store creation time
+    char inputTime[50];
+    time_t currentTime; // Variable to store time in seconds
+    struct tm *local_time; // Pointer to store broken-down time (year, month, day, etc.)
+    // Convert to local time format
+    local_time = localtime(&currentTime);
+    strftime(inputTime, sizeof inputTime, "%d-%m-%Y %H:%M:%S", local_time);
+    strcpy(todoList->time[todos], inputTime);
+
+    // mark todo is not done at initial
+    todoList->isDone = false;
+    todos++; // ready to store next todo
+}
 void removeTodo();
 void listTodos();
 void markAsDone();
