@@ -22,3 +22,7 @@ gcc app.c
 ```
 a.exe
 ```
+
+## Screenshot
+![welcome](https://github.com/Rahul0Singh0/C-Projects/blob/main/Todo%20app/images/Welcome.PNG)
+![Home](https://github.com/Rahul0Singh0/C-Projects/blob/main/Todo%20app/images/Home.PNG)

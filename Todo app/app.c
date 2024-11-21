@@ -74,7 +74,7 @@ void addTodo() {
 
 void viewTodos() {
     printf("+----+-------------------------------------+--------------------------+-------------+\n");
-    printf("| ID |            Todo Title               |       Creation Time      |  Completed  |\n");
+    printf("| ID |            Todo Name                |       Creation Time      |  Completed  |\n");
     printf("+----+-------------------------------------+--------------------------+-------------+\n");
 
     for (int i = 0; i < todos; i++)
