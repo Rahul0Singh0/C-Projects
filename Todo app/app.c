@@ -18,62 +18,108 @@ int todos = 0; // no. of todo
 void addTodo() {
     // Input todo title
     char inputName[50];
-    pritnf("\nEnter todo : ");
+    printf("\nEnter todo : ");
     fflush(stdin);
     scanf("%[^\n]s",inputName);
-    strcpy(todoList->name[todos], inputName);
+    strcpy(todoList[todos].name, inputName);
 
     // store creation time
     char inputTime[50];
     time_t currentTime; // Variable to store time in seconds
+    currentTime = time(NULL); // fetch current time
     struct tm *local_time; // Pointer to store broken-down time (year, month, day, etc.)
-    // Convert to local time format
     local_time = localtime(&currentTime);
     strftime(inputTime, sizeof inputTime, "%d-%m-%Y %H:%M:%S", local_time);
-    strcpy(todoList->time[todos], inputTime);
+    strcpy(todoList[todos].time, inputTime);
 
     // mark todo is not done at initial
-    todoList->isDone = false;
+    todoList[todos].isDone = false;
     todos++; // ready to store next todo
 }
-void removeTodo();
-void listTodos();
-void markAsDone();
+
+void viewTodos() {
+    printf("+----+-------------------------------------+--------------------------+-------------+\n");
+    printf("| ID |            Todo Title               |       Creation Time      |  Completed  |\n");
+    printf("+----+-------------------------------------+--------------------------+-------------+\n");
+
+    for (int i = 0; i < todos; i++)
+    {
+        printf("|%3d | %-35s | %-24s | %-11s |\n", i + 1, todoList[i].name, todoList[i].time, (!todoList[i].isDone) ? " No " : " Yes ");
+        printf("+----+-------------------------------------+--------------------------+-------------+\n");
+    }
+}
+
+void removeTodo() {
+    int todoId;
+    printf("\nEnter todo id: ");
+    scanf("%d",&todoId);
+    if(todoId < 0 || todoId > todos) {
+        printf("\nInvalid todo id: %d", todoId);
+    } else {
+         // Shift elements to the left
+        // for(int i = todoId; i < todos - 1; i++) {
+        //     todoList[i] = todoList[i + 1];
+        // }
+
+        // Use memmove to shift elements after the index to the left
+        if(todoId < todos-1) {
+            memmove(&todoList[todoId], &todoList[todoId+1], (todos-todoId)*sizeof(todoList));
+        }
+        todos--;
+        printf("\nYour todo has been deleted %d",todoId);
+    }
+}
+
+void markAsDone() {
+    int todoId;
+    printf("\nEnter the todo id: ");
+    scanf("%d", &todoId);
+    todoId--; // at index
+    if (todoId < 0 || todoId > todos) {
+        printf("\nInvalid todo id %d",todoId);
+    } else {
+        todoList[todoId].isDone = true;
+        printf("\nTodo marked as completed");
+    }
+}
 
 void showOption() {
     char option;
     system("color 3F");
-    while(1) {
-        system("cls");
-        printf("A. Add todo\n");
-        printf("V. View todos\n");
-        printf("D. Delete todo\n");
-        printf("M. Mark as done\n");
-        printf("Q. Quit\n");
-        scanf("%c",&option);
-        option = toupper(option);
-        switch (option) {
-            case 'A':
-                addTodo();
-                break;
-            case 'V':
-                // listTodos();
-                break;
-            case 'D':
-                // removeTodo();
-                break;
-            case 'M':
-                // markAsDone();
-                break;
-            case 'Q':
-                exit(0);
-                break;
-            default:
-                printf("\nInvalid Input\n");
-                showOption();
-                break;
-        }
+    system("cls");
+    printf("A. Add todo\n");
+    printf("V. View todos\n");
+    printf("D. Delete todo\n");
+    printf("M. Mark as done\n");
+    printf("Q. Quit\n");
+    option = getchar();
+    option = toupper(option);
+    getchar();
+    switch (option) {
+        case 'A':
+            addTodo();
+            break;
+        case 'V':
+            viewTodos();
+            break;
+        case 'D':
+            removeTodo();
+            getchar();
+            break;
+        case 'M':
+            markAsDone();
+            getchar();
+            break;
+        case 'Q':
+            exit(0);
+            break;
+        default:
+            printf("\nInvalid Input\n");
+            showOption();
+            break;
     }
+    getchar();
+    showOption();
 }
 
 void interface() {
